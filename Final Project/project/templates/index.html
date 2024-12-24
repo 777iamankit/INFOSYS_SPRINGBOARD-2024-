@@ -33,26 +33,29 @@
 
   <div class="container">
     <p id="file-logo">💾</p>
-    <h1 id="container-text">Drop Video here to <br>upload</h1>
+    <h1 id="container-text">Drop file here to <br>upload</h1>
     <button id="upload">
       <div id="upload-text">
         <h3>select from device</h3>
       </div>
     </button>
 
-    <!-- Hidden file input for video upload -->
-    <input type="file" id="file-input" accept="video/*" style="display: none;">
-    
+    <!-- Hidden file input for video and image upload -->
+    <input type="file" id="file-input" accept="video/*,image/*" style="display: none;">
+
     <!-- Video preview (initially hidden) -->
     <video id="video-preview" width="100%" height="auto" controls style="display: none;">
       Your browser does not support the video tag.
     </video>
 
-    <!-- Optional: Display the selected video file name -->
+    <!-- Image preview (initially hidden) -->
+    <img id="image-preview" width="100%" height="auto" style="display: none;" alt="Image Preview">
+
+    <!-- Optional: Display the selected file name -->
     <p id="file-name"></p>
   </div>
 
-  <!-- Buttons for processing the uploaded video -->
+  <!-- Buttons for processing the uploaded file -->
   <div id="buttons-container" style="display: none;">
     <button id="video-object-detection">Video Object Detection</button>
     <button id="video-object-tracking">Video Object Tracking</button>
@@ -64,26 +67,20 @@
   <div id="feedback-container" style="display: none;">
     <p id="feedback-message">Processing the video...</p>
     <a id="download-link" href="#" download="processed_video.mp4">
-      <button>Download Processed Video</button>
+      <button>Download Processed File</button>
     </a>
   </div>
 
-
-<!-- Section to show processed video and download button -->
-<div id="processed-video-container" style="display: none;">
-  <h3>Processed Video:</h3>
-  <video id="processed-video" width="100%" height="auto" controls></video>
-  <br>
-  <a id="download-button" href="#" download="processed_video.mp4" style="display: none;">
-    Download Processed Video
-  </a>
-</div>
-
-
-
-
-
-
+  <!-- Section to show processed file and download button -->
+  <div id="processed-file-container" style="display: none;">
+    <h3>Processed File:</h3>
+    <video id="processed-video" width="100%" height="auto" controls style="display: none;"></video>
+    <img id="processed-image" width="100%" height="auto" style="display: none;" alt="Processed Image">
+    <br>
+    <a id="download-button" href="#" style="display: none;">
+      <button>Download Processed File</button>
+    </a>
+  </div>
 
   <script src="static/js/upload.js"></script>
   <script>
@@ -91,12 +88,13 @@
       const uploadButton = document.getElementById('upload');
       const fileInput = document.getElementById('file-input');
       const videoPreview = document.getElementById('video-preview');
+      const imagePreview = document.getElementById('image-preview');
       const fileName = document.getElementById('file-name');
       const buttonsContainer = document.getElementById('buttons-container');
       const feedbackContainer = document.getElementById('feedback-container');
       const feedbackMessage = document.getElementById('feedback-message');
       const downloadLink = document.getElementById('download-link');
-      
+
       // Trigger file input when "Select from device" is clicked
       uploadButton.addEventListener('click', function() {
         fileInput.click();
@@ -106,53 +104,80 @@
       fileInput.addEventListener('change', function () {
         const selectedFile = fileInput.files[0];
         if (selectedFile) {
+          const fileType = selectedFile.type;
+
           // Hide upload-related elements
           document.getElementById('file-logo').style.display = 'none';
           document.getElementById('container-text').style.display = 'none';
           uploadButton.style.display = 'none';
 
-          // Show the video preview
-          const fileURL = URL.createObjectURL(selectedFile);
-          videoPreview.style.display = 'block';
-          videoPreview.src = fileURL; 
+          // Show preview based on file type
+          if (fileType.startsWith('video/')) {
+            const fileURL = URL.createObjectURL(selectedFile);
+            videoPreview.style.display = 'block';
+            videoPreview.src = fileURL;
+            imagePreview.style.display = 'none';
+          } else if (fileType.startsWith('image/')) {
+            const fileURL = URL.createObjectURL(selectedFile);
+            imagePreview.style.display = 'block';
+            imagePreview.src = fileURL;
+            videoPreview.style.display = 'none';
+          } else {
+            alert('Unsupported file type. Please upload an image or a video.');
+            resetUI();
+            return;
+          }
 
-          // Display the selected file name
-          fileName.textContent = `Selected video: ${selectedFile.name}`;
-
-          // Show the processing buttons
+          // Display file name
+          fileName.textContent = `Selected file: ${selectedFile.name}`;
           buttonsContainer.style.display = 'flex';
         } else {
-          // Reset everything if no file is selected
-          document.getElementById('file-logo').style.display = 'block';
-          document.getElementById('container-text').style.display = 'block';
-          uploadButton.style.display = 'flex';
-          videoPreview.style.display = 'none';
-          fileName.textContent = 'No file selected';
+          resetUI();
         }
       });
+
+      // Function to reset UI
+      function resetUI() {
+        document.getElementById('file-logo').style.display = 'block';
+        document.getElementById('container-text').style.display = 'block';
+        uploadButton.style.display = 'flex';
+        videoPreview.style.display = 'none';
+        imagePreview.style.display = 'none';
+        fileName.textContent = 'No file selected';
+        buttonsContainer.style.display = 'none';
+      }
 
       // Handle Video Object Detection button click
       document.getElementById('video-object-detection').addEventListener('click', function() {
         feedbackContainer.style.display = 'block';
-        feedbackMessage.textContent = 'Processing the video with Object Detection...';
+        feedbackMessage.textContent = 'Processing the file...';
 
-        // Create FormData to send the video file to the backend
+        // Create FormData to send the file to the backend
         const formData = new FormData();
-        formData.append('video', fileInput.files[0]);
+        formData.append('file', fileInput.files[0]);
 
-        // Send video to backend for processing
-        fetch('/process_video', {
+        // Send file to backend for processing
+        fetch('/process_file', {
           method: 'POST',
           body: formData
         })
         .then(response => response.json())
         .then(data => {
           if (data.success) {
-            // Update feedback message and provide download link
             feedbackMessage.textContent = 'Processing completed!';
-            downloadLink.href = data.output_video_url;  // Backend should return the URL for processed video
+            if (data.file_type === 'video') {
+              document.getElementById('processed-video').style.display = 'block';
+              document.getElementById('processed-video').src = data.output_file_url;
+              document.getElementById('processed-image').style.display = 'none';
+            } else if (data.file_type === 'image') {
+              document.getElementById('processed-image').style.display = 'block';
+              document.getElementById('processed-image').src = data.output_file_url;
+              document.getElementById('processed-video').style.display = 'none';
+            }
+            downloadLink.style.display = 'block';
+            downloadLink.href = data.output_file_url;
           } else {
-            feedbackMessage.textContent = 'Error processing the video.';
+            feedbackMessage.textContent = 'Error processing the file.';
           }
         })
         .catch(error => {
@@ -161,9 +186,6 @@
         });
       });
     });
-
-    
-
   </script>
 </body>
 </html>
