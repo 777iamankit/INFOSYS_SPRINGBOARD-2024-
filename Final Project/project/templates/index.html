@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Home Page</title>
+  <link rel="stylesheet" href="static/css/page1.css">
+</head>
+<body>
+
+  <!-- Login and Desktop Buttons -->
+  <div id="top-buttons">
+    <button id="desktop-btn" onclick="goToDesktop()">Desktop</button>
+    <button id="login-btn" onclick="loginClicked()">Log In</button>
+  </div>
+
+  <!-- Hamburger Menu (Three Line Bar) -->
+  <div id="hamburger-menu" onclick="toggleSidebar()">
+    &#9776; <span>ObjectDetection</span>
+  </div>
+
+  <!-- Sidebar (Initially hidden) -->
+  <div id="sidebar" class="sidebar">
+    <div class="close-btn" onclick="closeSidebar()">&#10006;</div> <!-- Close Button -->
+    <div class="sidebar-item" onclick="goToDashboard()">Dashboard</div>
+    <div class="sidebar-item" onclick="goToProfile()">Profile</div>
+    <div class="sidebar-item" onclick="goToSignIn()">Sign In</div>
+    <div class="sidebar-item" onclick="goToSupport()">Support</div>
+    <div class="login-btn-container">
+      <button id="login-btn" onclick="loginClicked()">Log In</button>
+    </div>
+  </div>
+
+  <h1 id="heading">Final Project Infosys_SpringBoard(2024)</h1>
+
+  <div class="container">
+    <p id="file-logo">💾</p>
+    <h1 id="container-text">Drop Video here to <br>upload</h1>
+    <button id="upload">
+      <div id="upload-text">
+        <h3>select from device</h3>
+      </div>
+    </button>
+
+    <!-- Hidden file input for video upload -->
+    <input type="file" id="file-input" accept="video/*" style="display: none;">
+    
+    <!-- Video preview (initially hidden) -->
+    <video id="video-preview" width="100%" height="auto" controls style="display: none;">
+      Your browser does not support the video tag.
+    </video>
+
+    <!-- Optional: Display the selected video file name -->
+    <p id="file-name"></p>
+  </div>
+
+  <!-- Buttons for processing the uploaded video -->
+  <div id="buttons-container" style="display: none;">
+    <button id="video-object-detection">Video Object Detection</button>
+    <button id="video-object-tracking">Video Object Tracking</button>
+    <button id="process-dense-optical-flow">Process Video with Dense Optical Flow</button>
+    <button id="process-sparse-optical-flow">Process Video with Sparse Optical Flow</button>
+  </div>
+
+  <!-- Feedback and Download Section (Initially hidden) -->
+  <div id="feedback-container" style="display: none;">
+    <p id="feedback-message">Processing the video...</p>
+    <a id="download-link" href="#" download="processed_video.mp4">
+      <button>Download Processed Video</button>
+    </a>
+  </div>
+
+
+<!-- Section to show processed video and download button -->
+<div id="processed-video-container" style="display: none;">
+  <h3>Processed Video:</h3>
+  <video id="processed-video" width="100%" height="auto" controls></video>
+  <br>
+  <a id="download-button" href="#" download="processed_video.mp4" style="display: none;">
+    Download Processed Video
+  </a>
+</div>
+
+
+
+
+
+
+
+  <script src="static/js/upload.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const uploadButton = document.getElementById('upload');
+      const fileInput = document.getElementById('file-input');
+      const videoPreview = document.getElementById('video-preview');
+      const fileName = document.getElementById('file-name');
+      const buttonsContainer = document.getElementById('buttons-container');
+      const feedbackContainer = document.getElementById('feedback-container');
+      const feedbackMessage = document.getElementById('feedback-message');
+      const downloadLink = document.getElementById('download-link');
+      
+      // Trigger file input when "Select from device" is clicked
+      uploadButton.addEventListener('click', function() {
+        fileInput.click();
+      });
+
+      // Handle file selection
+      fileInput.addEventListener('change', function () {
+        const selectedFile = fileInput.files[0];
+        if (selectedFile) {
+          // Hide upload-related elements
+          document.getElementById('file-logo').style.display = 'none';
+          document.getElementById('container-text').style.display = 'none';
+          uploadButton.style.display = 'none';
+
+          // Show the video preview
+          const fileURL = URL.createObjectURL(selectedFile);
+          videoPreview.style.display = 'block';
+          videoPreview.src = fileURL; 
+
+          // Display the selected file name
+          fileName.textContent = `Selected video: ${selectedFile.name}`;
+
+          // Show the processing buttons
+          buttonsContainer.style.display = 'flex';
+        } else {
+          // Reset everything if no file is selected
+          document.getElementById('file-logo').style.display = 'block';
+          document.getElementById('container-text').style.display = 'block';
+          uploadButton.style.display = 'flex';
+          videoPreview.style.display = 'none';
+          fileName.textContent = 'No file selected';
+        }
+      });
+
+      // Handle Video Object Detection button click
+      document.getElementById('video-object-detection').addEventListener('click', function() {
+        feedbackContainer.style.display = 'block';
+        feedbackMessage.textContent = 'Processing the video with Object Detection...';
+
+        // Create FormData to send the video file to the backend
+        const formData = new FormData();
+        formData.append('video', fileInput.files[0]);
+
+        // Send video to backend for processing
+        fetch('/process_video', {
+          method: 'POST',
+          body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            // Update feedback message and provide download link
+            feedbackMessage.textContent = 'Processing completed!';
+            downloadLink.href = data.output_video_url;  // Backend should return the URL for processed video
+          } else {
+            feedbackMessage.textContent = 'Error processing the video.';
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          feedbackMessage.textContent = 'An error occurred during processing.';
+        });
+      });
+    });
+
+    
+
+  </script>
+</body>
+</html>
