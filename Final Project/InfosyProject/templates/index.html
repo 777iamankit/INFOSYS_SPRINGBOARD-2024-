@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traffic Detection and Analysis</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        .container {
+            margin-top: 50px;
+            background-color: #f8f9fa; /* Light background for the container */
+            border-radius: 10px; /* Rounded corners */
+            padding: 20px; /* Padding inside the container */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow effect */
+        }
+        .btn {
+            margin-right: 10px;
+            transition: background-color 0.3s; /* Smooth transition for button hover */
+        }
+        .btn:hover {
+            background-color: #0056b3; /* Darker blue on hover for primary button */
+           
+  transform: scale(1.1);
+        }
+        .btn-file {
+            background-color: #007bff; /* Blue color for the file input button */
+            color: white; /* White text color */
+        }
+        .output-container img {
+            max-width: 100%;
+            border: 2px solid #dee2e6; /* Border around images */
+            border-radius: 5px; /* Rounded corners for images */
+        }
+        h1, h2, h3, h4 {
+            color: #343a40; /* Darker text color for headings */
+        }
+        hr {
+            border-top: 2px solid #007bff; /* Blue color for horizontal rule */
+        }
+
+        .nav-container{
+            
+            display:flex;
+            justify-content:center;
+
+        }
+        
+        
+    </style>
+</head>
+<body>
+    
+<div class="nav-container">
+    <nav class="navbar navbar-expand-lg bg-body-tertiary">
+        <div class="container-fluid">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link active" aria-current="page" href="/">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Link</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Dropdown
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#">Action</a></li>
+                            <li><a class="dropdown-item" href="#">Another action</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#">Something else here</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link disabled" aria-disabled="true">Disabled</a>
+                    </li>
+                </ul>
+                <form class="d-flex" role="search">
+                    <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search">
+                    <button class="btn btn-outline-success" type="submit">Search</button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+</div>
+
+
+
+
+
+
+
+
+
+
+
+<div class="container">
+    <h1 class="text-center">Traffic Detection and Analysis</h1>
+    <hr>
+
+    <!-- Form to upload file -->
+    {% if not file_uploaded %}
+    <form action="/" method="post" enctype="multipart/form-data" class="text-center">
+        <div class="form-group">
+            <label for="file">Upload Image or Video</label>
+            <input type="file" class="form-control-file btn-file" id="file" name="file" required>
+        </div>
+        <button type="submit" class="btn btn-primary" >Upload</button>
+    </form>
+    {% else %}
+    <h3 class="text-center">File uploaded successfully: {{ filename }}</h3>
+
+    <!-- Buttons for Image Processing, Optical Flow, and Object Tracking -->
+    <div class="btn-group d-flex justify-content-center" role="group">
+        <a href="{{ url_for('process_image', filename=filename) }}" class="btn btn-info">Image Processing</a>
+        <a href="{{ url_for('process_video', filename=filename) }}" class="btn btn-success">Sparse Optical Flow</a>
+        <a href="{{ url_for('object_tracking', filename=filename) }}" class="btn btn-warning">Object Tracking</a>
+    </div>
+    
+    {% if output1 and output2 and output3 %}
+    <h2>Image Processing Results</h2>
+    <div class="row">
+        <div class="col-md-4">
+            <h4>RGB Channel (Red)</h4>
+            <img src="{{ url_for('static', filename='output/output1.png') }}" class="img-fluid" alt="RGB Red">
+        </div>
+        <div class="col-md-4">
+            <h4>Histogram</h4>
+            <img src="{{ url_for('static', filename='output/output2.png') }}" class="img-fluid" alt="Histogram">
+        </div>
+        <div class="col-md-4">
+            <h4>BGR to RGB Conversion</h4>
+            <img src="{{ url_for('static', filename='output/output3.png') }}" class="img-fluid" alt="BGR to RGB">
+        </div>
+    </div>
+    {% endif %}
+
+    {% if video_output %}
+    <h4>Processed Video</h4>
+    <a href="{{ url_for('download', filename=video_output) }}" class="btn btn-primary">Download Processed Video</a>
+    {% endif %}
+    {% endif %}
+</div>
+
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
