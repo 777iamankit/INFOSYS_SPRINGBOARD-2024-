@@ -19,7 +19,7 @@ app.config['ALLOWED_EXTENSIONS'] = {'jpg', 'jpeg', 'png', 'mp4', 'avi', 'mov'}
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['OUTPUT_FOLDER'], exist_ok=True)
 
-# Image processing (Imageai for object detection)
+# ImageAI setup for object detection
 video_detector = VideoObjectDetection()
 video_detector.setModelTypeAsTinyYOLOv3()
 video_detector.setModelPath(os.path.join(execution_path, "static/models/tiny-yolov3.pt"))
@@ -29,7 +29,7 @@ video_detector.loadModel()
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
-# Route to upload image or video
+# Route to upload files
 @app.route('/', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
@@ -39,24 +39,21 @@ def index():
             file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(file_path)
 
-            # Image Processing
             if file.filename.lower().endswith(('jpg', 'jpeg', 'png')):
                 return render_template('index.html', file_uploaded=True, filename=filename)
-            
-            # Video Processing
             elif file.filename.lower().endswith(('mp4', 'avi', 'mov')):
                 return render_template('index.html', file_uploaded=True, filename=filename)
     
     return render_template('index.html', file_uploaded=False)
 
-# Image processing
+# Route for image processing
 @app.route('/image-processing/<filename>', methods=['GET'])
 def process_image(filename):
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     img_cv2 = cv2.imread(filepath)
     img_mpl = cv2.cvtColor(img_cv2, cv2.COLOR_BGR2RGB)
 
-    # Output 1: RGB Channels
+    # RGB channels
     fig, axs = plt.subplots(1, 3, figsize=(10, 5))
     axs[0].imshow(img_mpl[:, :, 0], cmap='Reds')
     axs[1].imshow(img_mpl[:, :, 1], cmap='Greens')
@@ -68,13 +65,13 @@ def process_image(filename):
     plt.savefig(output1_path)
     plt.close()
 
-    # Output 2: Histogram
+    # Histogram
     pd.Series(img_mpl.flatten()).plot(kind='hist', bins=50, title='Pixel Distribution')
     output2_path = os.path.join(app.config['OUTPUT_FOLDER'], 'output2.png')
     plt.savefig(output2_path)
     plt.close()
 
-    # Output 3: BGR to RGB Conversion
+    # BGR to RGB conversion
     img_cv2_rgb = cv2.cvtColor(img_cv2, cv2.COLOR_BGR2RGB)
     fig, ax = plt.subplots()
     ax.imshow(img_cv2_rgb)
@@ -93,7 +90,7 @@ def process_image(filename):
         output3='output3.png'
     )
 
-# Video processing
+# Route for video processing
 @app.route('/video-processing/<filename>', methods=['GET'])
 def process_video(filename):
     video_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
@@ -104,7 +101,6 @@ def process_video(filename):
 
     output_filename = 'processed_' + os.path.basename(video_path)
     output_path = os.path.join(app.config['OUTPUT_FOLDER'], output_filename)
-
     out = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (frame_width, frame_height))
 
     # Parameters for Lucas-Kanade optical flow
@@ -145,85 +141,43 @@ def process_video(filename):
 
     return render_template('index.html', file_uploaded=True, filename=filename, video_output=output_filename)
 
-#object tracking
-@app.route('/object-tracking/<filename>', methods=['GET'])
-def object_tracking(filename):
+# Route for object detection
+@app.route('/object-detection/<filename>', methods=['GET'])
+def object_detection(filename):
     video_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    cap = cv2.VideoCapture(video_path)
-
-    if not cap.isOpened():
-        return "Error: Cannot open video file."
-
-    # Read the first frame
-    ret, frame = cap.read()
-    if not ret:
-        return "Error: Cannot read the video file."
-
-    # Ensure frame is in the correct format (convert if necessary)
-    frame = frame.astype(np.uint8)  # Ensure it's a valid uint8 frame for ROI selection
-
-    # Select ROI (Uncomment for debugging)
-    bbox = cv2.selectROI("Select ROI", frame, fromCenter=False, showCrosshair=True)
-    cv2.destroyWindow("Select ROI")
-    
-    # Uncomment for hardcoded ROI during debugging
-    # bbox = (100, 100, 200, 200)  # Example: hardcoded ROI
-
-    # Initialize the tracker (use CSRT if available)
-    if hasattr(cv2, 'TrackerCSRT_create'):
-        tracker = cv2.TrackerCSRT_create()
-    else:
-        return "Error: TrackerCSRT is not supported by your OpenCV version."
-
-    tracker.init(frame, bbox)
-
-    # Prepare to write output video
-    frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    fps = int(cap.get(cv2.CAP_PROP_FPS))
-
-    output_filename = 'tracked_' + os.path.basename(video_path)
+    output_filename = 'detected_' + os.path.splitext(os.path.basename(video_path))[0] + '.mp4'  # Ensures only one .mp4
     output_path = os.path.join(app.config['OUTPUT_FOLDER'], output_filename)
-    out = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (frame_width, frame_height))
 
-    while cap.isOpened():
-        ret, frame = cap.read()
-        if not ret:
-            break
 
-        # Update the tracker and draw the bounding box
-        success, bbox = tracker.update(frame)
-        if success:
-            p1 = (int(bbox[0]), int(bbox[1]))
-            p2 = (int(bbox[0] + bbox[2]), int(bbox[1] + bbox[3]))
-            cv2.rectangle(frame, p1, p2, (0, 255, 0), 2)
-        else:
-            cv2.putText(frame, "Tracking failure", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 0, 255), 2)
+    # Start timing
+    start_time = time.time()
 
-        # Write the processed frame to the output video
-        out.write(frame)
-
-    cap.release()
-    out.release()
-
-    return render_template(
-        'index.html',
-        file_uploaded=True,
-        filename=filename,
-        video_output=output_filename
+    # Process the video and save the output using ImageAI
+    video_detector.detectObjectsFromVideo(
+        input_file_path=video_path,
+        output_file_path=output_path,  # Save output to the specified folder and filename
+        frames_per_second=10,
+        minimum_percentage_probability=30
     )
 
+    # End timing and calculate the duration
+    end_time = time.time()
+    execution_duration = end_time - start_time
 
+    # Print the time taken to process the video    
+    print("Time taken to run the code:", execution_duration, "seconds")
+
+    return render_template('index.html', file_uploaded=True, filename=filename, object_detected_video=output_filename)
+
+# Route for downloading files
 @app.route('/download/<filename>')
 def download(filename):
     file_path = os.path.join(app.config['OUTPUT_FOLDER'], filename)
+    print("Resolved file path for download:", file_path)
+
     if not os.path.exists(file_path):
         return f"Error: File {filename} does not exist.", 404
-    return send_from_directory(
-        app.config['OUTPUT_FOLDER'], 
-        filename, 
-        as_attachment=True
-    )
+    return send_from_directory(app.config['OUTPUT_FOLDER'], filename, as_attachment=True)
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -19,8 +19,7 @@
         }
         .btn:hover {
             background-color: #0056b3; /* Darker blue on hover for primary button */
-           
-  transform: scale(1.1);
+            transform: scale(1.1);
         }
         .btn-file {
             background-color: #007bff; /* Blue color for the file input button */
@@ -39,13 +38,9 @@
         }
 
         .nav-container{
-            
             display:flex;
             justify-content:center;
-
         }
-        
-        
     </style>
 </head>
 <body>
@@ -86,18 +81,7 @@
             </div>
         </div>
     </nav>
-
 </div>
-
-
-
-
-
-
-
-
-
-
 
 <div class="container">
     <h1 class="text-center">Traffic Detection and Analysis</h1>
@@ -110,16 +94,16 @@
             <label for="file">Upload Image or Video</label>
             <input type="file" class="form-control-file btn-file" id="file" name="file" required>
         </div>
-        <button type="submit" class="btn btn-primary" >Upload</button>
+        <button type="submit" class="btn btn-primary">Upload</button>
     </form>
     {% else %}
     <h3 class="text-center">File uploaded successfully: {{ filename }}</h3>
 
-    <!-- Buttons for Image Processing, Optical Flow, and Object Tracking -->
+    <!-- Buttons for Image Processing, Optical Flow, and Object Detection -->
     <div class="btn-group d-flex justify-content-center" role="group">
         <a href="{{ url_for('process_image', filename=filename) }}" class="btn btn-info">Image Processing</a>
         <a href="{{ url_for('process_video', filename=filename) }}" class="btn btn-success">Sparse Optical Flow</a>
-        <a href="{{ url_for('object_tracking', filename=filename) }}" class="btn btn-warning">Object Tracking</a>
+        <a href="{{ url_for('object_detection', filename=filename) }}" class="btn btn-warning">Object Detection</a>
     </div>
     
     {% if output1 and output2 and output3 %}
@@ -138,11 +122,20 @@
             <img src="{{ url_for('static', filename='output/output3.png') }}" class="img-fluid" alt="BGR to RGB">
         </div>
     </div>
+    <h4>Download Image Processing Results</h4>
+    <a href="{{ url_for('download', filename='output/output1.png') }}" class="btn btn-primary">Download RGB Channel</a>
+    <a href="{{ url_for('download', filename='output/output2.png') }}" class="btn btn-primary">Download Histogram</a>
+    <a href="{{ url_for('download', filename='output/output3.png') }}" class="btn btn-primary">Download BGR to RGB</a>
     {% endif %}
 
     {% if video_output %}
     <h4>Processed Video</h4>
     <a href="{{ url_for('download', filename=video_output) }}" class="btn btn-primary">Download Processed Video</a>
+    {% endif %}
+
+    {% if object_detected_video %}
+    <h4>Object Detection Results</h4>
+    <a href="{{ url_for('download', filename=object_detected_video) }}" class="btn btn-primary">Download Detected Video</a>
     {% endif %}
     {% endif %}
 </div>
